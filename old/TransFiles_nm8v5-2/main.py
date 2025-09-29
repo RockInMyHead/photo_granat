@@ -70,11 +70,6 @@ class MoveItem(BaseModel):
     src: str
     dest: str
 
-class MergeClustersRequest(BaseModel):
-    source_cluster: int
-    target_cluster: int
-    folder_path: str
-
 # Утилиты
 def cleanup_old_tasks():
     """Удалить старые завершенные задачи (старше 5 минут)"""
@@ -510,86 +505,6 @@ async def move_item(item: MoveItem):
         return {"message": "Успешно перемещено", "src": str(src_path), "dest": str(target)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка перемещения: {e}")
-
-@app.post("/api/merge-clusters")
-async def merge_clusters(request: MergeClustersRequest):
-    """Объединить два кластера - переместить все файлы из source_cluster в target_cluster"""
-    folder_path = Path(request.folder_path)
-    if not folder_path.exists():
-        raise HTTPException(status_code=404, detail="Папка не найдена")
-    
-    source_cluster_dir = folder_path / str(request.source_cluster)
-    target_cluster_dir = folder_path / str(request.target_cluster)
-    
-    if not source_cluster_dir.exists():
-        raise HTTPException(status_code=404, detail=f"Исходный кластер {request.source_cluster} не найден")
-    
-    if not target_cluster_dir.exists():
-        raise HTTPException(status_code=404, detail=f"Целевой кластер {request.target_cluster} не найден")
-    
-    try:
-        moved_count = 0
-        # Перемещаем все файлы из исходного кластера в целевой
-        for file_path in source_cluster_dir.iterdir():
-            if file_path.is_file():
-                target_file = target_cluster_dir / file_path.name
-                # Если файл с таким именем уже существует, добавляем суффикс
-                counter = 1
-                while target_file.exists():
-                    name_parts = file_path.stem, counter, file_path.suffix
-                    target_file = target_cluster_dir / f"{name_parts[0]}_{name_parts[1]}{name_parts[2]}"
-                    counter += 1
-                
-                shutil.move(str(file_path), str(target_file))
-                moved_count += 1
-        
-        # Удаляем пустую папку исходного кластера
-        if not any(source_cluster_dir.iterdir()):
-            source_cluster_dir.rmdir()
-        
-        return {
-            "message": f"Успешно объединены кластеры {request.source_cluster} → {request.target_cluster}",
-            "moved_files": moved_count,
-            "source_cluster": request.source_cluster,
-            "target_cluster": request.target_cluster
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка объединения кластеров: {str(e)}")
-
-@app.get("/api/cluster-analysis")
-async def get_cluster_analysis(folder_path: str):
-    """Получить анализ кластеров в папке"""
-    folder = Path(folder_path)
-    if not folder.exists():
-        raise HTTPException(status_code=404, detail="Папка не найдена")
-    
-    clusters = {}
-    total_files = 0
-    
-    # Сканируем папки-кластеры
-    for item in folder.iterdir():
-        if item.is_dir() and item.name.isdigit():
-            cluster_id = int(item.name)
-            files = [f.name for f in item.iterdir() if f.is_file()]
-            clusters[cluster_id] = {
-                "path": str(item),
-                "file_count": len(files),
-                "files": files[:10],  # Показываем только первые 10 файлов
-                "has_more": len(files) > 10
-            }
-            total_files += len(files)
-    
-    # Сортируем кластеры по размеру
-    sorted_clusters = sorted(clusters.items(), key=lambda x: x[1]["file_count"], reverse=True)
-    
-    return {
-        "folder_path": str(folder),
-        "total_clusters": len(clusters),
-        "total_files": total_files,
-        "clusters": dict(sorted_clusters),
-        "avg_files_per_cluster": total_files / len(clusters) if clusters else 0
-    }
 
 @app.get("/favicon.ico")
 async def favicon():
