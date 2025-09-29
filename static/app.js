@@ -18,49 +18,74 @@ class PhotoClusterApp {
         this.processBtn = document.getElementById('processBtn');
         this.clearBtn = document.getElementById('clearBtn');
         this.addQueueBtn = document.getElementById('addQueueBtn');
+        
+        // Проверяем, что все необходимые элементы найдены
+        const requiredElements = [
+            'driveButtons', 'currentPath', 'folderContents', 'uploadZone',
+            'fileInput', 'queueList', 'processBtn', 'clearBtn', 'addQueueBtn'
+        ];
+        
+        for (const elementId of requiredElements) {
+            if (!this[elementId.replace(/([A-Z])/g, (match, letter) => letter.toLowerCase()) + 'El'] && 
+                !this[elementId.replace(/([A-Z])/g, (match, letter) => letter.toLowerCase())]) {
+                console.warn(`Element not found: ${elementId}`);
+            }
+        }
     }
 
     setupEventListeners() {
         // Разрешить drop в очередь
-        this.queueList.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            this.queueList.classList.add('drag-over');
-        });
-        this.queueList.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            this.queueList.classList.remove('drag-over');
-        });
-        this.queueList.addEventListener('drop', (e) => {
-            e.preventDefault();
-            this.queueList.classList.remove('drag-over');
-            const path = e.dataTransfer.getData('text/plain');
-            if (path) this.addToQueue(path);
-        });
+        if (this.queueList) {
+            this.queueList.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                this.queueList.classList.add('drag-over');
+            });
+            this.queueList.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                this.queueList.classList.remove('drag-over');
+            });
+            this.queueList.addEventListener('drop', (e) => {
+                e.preventDefault();
+                this.queueList.classList.remove('drag-over');
+                const path = e.dataTransfer.getData('text/plain');
+                if (path) this.addToQueue(path);
+            });
+        }
+        
         // Кнопки обработки очереди
-        this.processBtn.addEventListener('click', () => this.processQueue());
-        this.clearBtn.addEventListener('click', () => this.clearQueue());
-        // Кнопка добавить в очередь
-        this.addQueueBtn.addEventListener('click', () => this.addToQueue(this.currentPath));
+        if (this.processBtn) {
+            this.processBtn.addEventListener('click', () => this.processQueue());
+        }
+        if (this.clearBtn) {
+            this.clearBtn.addEventListener('click', () => this.clearQueue());
+        }
+        if (this.addQueueBtn) {
+            this.addQueueBtn.addEventListener('click', () => this.addToQueue(this.currentPath));
+        }
 
         // Загрузка файлов
-        this.fileInput.addEventListener('change', (e) => this.handleFileUpload(e.target.files));
+        if (this.fileInput) {
+            this.fileInput.addEventListener('change', (e) => this.handleFileUpload(e.target.files));
+        }
 
         // Drag & Drop
-        this.uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            this.uploadZone.classList.add('drag-over');
-        });
+        if (this.uploadZone) {
+            this.uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                this.uploadZone.classList.add('drag-over');
+            });
 
-        this.uploadZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            this.uploadZone.classList.remove('drag-over');
-        });
+            this.uploadZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                this.uploadZone.classList.remove('drag-over');
+            });
 
-        this.uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            this.uploadZone.classList.remove('drag-over');
-            this.handleFileUpload(e.dataTransfer.files);
-        });
+            this.uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                this.uploadZone.classList.remove('drag-over');
+                this.handleFileUpload(e.dataTransfer.files);
+            });
+        }
     }
 
     async loadInitialData() {
@@ -73,14 +98,16 @@ class PhotoClusterApp {
             const response = await fetch('/api/drives');
             const drives = await response.json();
             
-            this.driveButtons.innerHTML = '';
-            drives.forEach(drive => {
-                const button = document.createElement('button');
-                button.className = 'drive-btn';
-                button.textContent = drive.name;
-                button.addEventListener('click', () => this.navigateToFolder(drive.path));
-                this.driveButtons.appendChild(button);
-            });
+            if (this.driveButtons) {
+                this.driveButtons.innerHTML = '';
+                drives.forEach(drive => {
+                    const button = document.createElement('button');
+                    button.className = 'drive-btn';
+                    button.textContent = drive.name;
+                    button.addEventListener('click', () => this.navigateToFolder(drive.path));
+                    this.driveButtons.appendChild(button);
+                });
+            }
         } catch (error) {
             this.showNotification('Ошибка загрузки дисков: ' + error.message, 'error');
         }
@@ -97,7 +124,9 @@ class PhotoClusterApp {
             
             const data = await response.json();
             
-            this.currentPathEl.innerHTML = `<strong>Текущая папка:</strong> ${path}`;
+            if (this.currentPathEl) {
+                this.currentPathEl.innerHTML = `<strong>Текущая папка:</strong> ${path}`;
+            }
             await this.displayFolderContents(data.contents);
             
         } catch (error) {
@@ -106,14 +135,18 @@ class PhotoClusterApp {
     }
 
     async displayFolderContents(contents) {
-        this.folderContents.innerHTML = '';
+        if (this.folderContents) {
+            this.folderContents.innerHTML = '';
+        }
         
         if (contents.length === 0) {
-            this.folderContents.innerHTML = `
-                <p style="text-align: center; color: #666; padding: 40px 0;">
-                    Папка пуста
-                </p>
-            `;
+            if (this.folderContents) {
+                this.folderContents.innerHTML = `
+                    <p style="text-align: center; color: #666; padding: 40px 0;">
+                        Папка пуста
+                    </p>
+                `;
+            }
             return;
         }
 
@@ -129,7 +162,9 @@ class PhotoClusterApp {
                 });
                 button.textContent = item.name;
                 if (item.is_directory) button.addEventListener('click', () => this.navigateToFolder(item.path));
-                this.folderContents.appendChild(button);
+                if (this.folderContents) {
+                    this.folderContents.appendChild(button);
+                }
                 continue;
             }
             
@@ -157,7 +192,9 @@ class PhotoClusterApp {
                         caption.textContent = item.name;
                         div.appendChild(caption);
                         div.addEventListener('click', () => this.navigateToFolder(item.path));
-                        this.folderContents.appendChild(div);
+                        if (this.folderContents) {
+                            this.folderContents.appendChild(div);
+                        }
                         continue;
                     }
                 } catch {}
@@ -179,7 +216,9 @@ class PhotoClusterApp {
                 caption.textContent = item.name;
                 div.appendChild(img);
                 div.appendChild(caption);
-                this.folderContents.appendChild(div);
+                if (this.folderContents) {
+                    this.folderContents.appendChild(div);
+                }
             } else {
                 // Папки и другие файлы обрабатываются как раньше
                 const button = document.createElement('button');
@@ -196,7 +235,9 @@ class PhotoClusterApp {
                 }
                 button.textContent = item.name;
                 if (item.is_directory) button.addEventListener('click', () => this.navigateToFolder(item.path));
-                this.folderContents.appendChild(button);
+                if (this.folderContents) {
+                    this.folderContents.appendChild(button);
+                }
             }
         }
 
@@ -207,7 +248,9 @@ class PhotoClusterApp {
             addButton.style.marginTop = '15px';
             addButton.textContent = '📌 Добавить в очередь';
             addButton.addEventListener('click', () => this.addToQueue(this.currentPath));
-            this.folderContents.appendChild(addButton);
+            if (this.folderContents) {
+                this.folderContents.appendChild(addButton);
+            }
         }
     }
 
@@ -263,7 +306,9 @@ class PhotoClusterApp {
         }
 
         // Очищаем input
-        this.fileInput.value = '';
+        if (this.fileInput) {
+            this.fileInput.value = '';
+        }
     }
 
     async addToQueue(path) {
@@ -298,34 +343,40 @@ class PhotoClusterApp {
 
     displayQueue() {
         if (this.queue.length === 0) {
-            this.queueList.innerHTML = `
-                <p style="text-align: center; color: #666; padding: 20px 0;">
-                    Очередь пуста
-                </p>
-            `;
-            this.processBtn.disabled = true;
-            this.clearBtn.disabled = true;
-            this.addQueueBtn.disabled = false;
-        } else {
-            this.queueList.innerHTML = '';
-            this.queue.forEach((path, index) => {
-                const item = document.createElement('div');
-                item.className = 'queue-item';
-                item.innerHTML = `
-                    <span>${index + 1}. ${path}</span>
+            if (this.queueList) {
+                this.queueList.innerHTML = `
+                    <p style="text-align: center; color: #666; padding: 20px 0;">
+                        Очередь пуста
+                    </p>
                 `;
-                this.queueList.appendChild(item);
-            });
-            this.processBtn.disabled = false;
-            this.clearBtn.disabled = false;
-            this.addQueueBtn.disabled = false;
+            }
+            if (this.processBtn) this.processBtn.disabled = true;
+            if (this.clearBtn) this.clearBtn.disabled = true;
+            if (this.addQueueBtn) this.addQueueBtn.disabled = false;
+        } else {
+            if (this.queueList) {
+                this.queueList.innerHTML = '';
+                this.queue.forEach((path, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'queue-item';
+                    item.innerHTML = `
+                        <span>${index + 1}. ${path}</span>
+                    `;
+                    this.queueList.appendChild(item);
+                });
+            }
+            if (this.processBtn) this.processBtn.disabled = false;
+            if (this.clearBtn) this.clearBtn.disabled = false;
+            if (this.addQueueBtn) this.addQueueBtn.disabled = false;
         }
     }
 
     async processQueue() {
         try {
-            this.processBtn.disabled = true;
-            this.processBtn.innerHTML = '<div class="loading"></div> Запуск...';
+            if (this.processBtn) {
+                this.processBtn.disabled = true;
+                this.processBtn.innerHTML = '<div class="loading"></div> Запуск...';
+            }
 
             const response = await fetch('/api/process', {
                 method: 'POST'
@@ -339,8 +390,10 @@ class PhotoClusterApp {
         } catch (error) {
             this.showNotification('Ошибка запуска обработки: ' + error.message, 'error');
         } finally {
-            this.processBtn.disabled = false;
-            this.processBtn.innerHTML = '🚀 Обработать очередь';
+            if (this.processBtn) {
+                this.processBtn.disabled = false;
+                this.processBtn.innerHTML = '🚀 Обработать очередь';
+            }
         }
     }
 
