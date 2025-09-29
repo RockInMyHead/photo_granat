@@ -267,11 +267,27 @@ async def process_folder_task(task_id: str, folder_path: str):
         app_state["current_tasks"][task_id]["message"] = f"Ошибка: {str(e)}"
 
 # API endpoints
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def get_index():
-    """Главная страница"""
-    with open("static/index.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(f.read())
+    """Главная страница - информация об API"""
+    return {
+        "title": "📸 Кластеризация лиц - API",
+        "description": "REST API для автоматической кластеризации лиц на фотографиях",
+        "version": "1.0.0",
+        "endpoints": {
+            "drives": "GET /api/drives - список дисков",
+            "folder": "GET /api/folder?path={path} - содержимое папки",
+            "upload": "POST /api/upload?path={path} - загрузка файлов",
+            "queue": "GET/POST/DELETE /api/queue - управление очередью",
+            "process": "POST /api/process - запуск обработки",
+            "tasks": "GET /api/tasks - статус задач",
+            "preview": "GET /api/image/preview?path={path}&size={size} - превью изображения",
+            "merge_clusters": "POST /api/merge-clusters - объединение кластеров",
+            "cluster_analysis": "GET /api/cluster-analysis?folder_path={path} - анализ кластеров"
+        },
+        "documentation": "http://localhost:8000/docs",
+        "redoc": "http://localhost:8000/redoc"
+    }
 
 @app.get("/api/drives")
 async def get_drives():
@@ -491,8 +507,8 @@ async def stream_tasks():
             await asyncio.sleep(1)
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
-# Статические файлы
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Статические файлы (отключено - нет веб-интерфейса)
+# app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.post("/api/move")
 async def move_item(item: MoveItem):
